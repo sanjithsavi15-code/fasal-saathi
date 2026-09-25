@@ -1,0 +1,241 @@
+/* ==========================================================================
+   Tailwind v4 + Fasal Saathi design tokens
+   ========================================================================== */
+@import "tailwindcss";
+
+:root {
+  --color-background: #f4f7f2;
+  --color-background-sunken: #e8efe6;
+  --color-surface: #ffffff;
+  --color-foreground: #1c2826;
+  --color-muted-foreground: #52796f;
+  --color-brand: #1b4332;
+  --color-brand-deep: #132e23;
+  --color-sage: #52796f;
+  --color-sage-tint: #d8f3dc;
+  --color-clay: #b85d38;
+  --color-amber: #c99a3e;
+  --color-border: #d5ddd4;
+  --color-scrollbar-thumb: #c5cdc0;
+  --color-scrollbar-thumb-hover: #9aa894;
+  --color-risk-high: #b85d38;
+  --color-risk-monitor: #c99a3e;
+  --color-risk-safe: #1b4332;
+  --gradient-page: linear-gradient(
+    165deg,
+    #eef4eb 0%,
+    #f4f7f2 42%,
+    #e6efe8 100%
+  );
+}
+
+[data-theme="dark"] {
+  --color-background: #0f1a16;
+  --color-background-sunken: #15221c;
+  --color-surface: #1a2822;
+  --color-foreground: #e8eee9;
+  --color-muted-foreground: #8fafa3;
+  --color-brand: #4a9b72;
+  --color-brand-deep: #b8dcc8;
+  --color-sage: #8fafa3;
+  --color-sage-tint: #243830;
+  --color-clay: #e07a52;
+  --color-amber: #e0b85c;
+  --color-border: #2a3d34;
+  --color-scrollbar-thumb: #3a4f45;
+  --color-scrollbar-thumb-hover: #5a7266;
+  --color-risk-high: #e07a52;
+  --color-risk-monitor: #e0b85c;
+  --color-risk-safe: #4a9b72;
+  --gradient-page: linear-gradient(
+    165deg,
+    #0c1612 0%,
+    #0f1a16 45%,
+    #132018 100%
+  );
+}
+
+@layer base {
+  *,
+  ::before,
+  ::after {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background: var(--gradient-page);
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans), system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    color: var(--color-brand-deep);
+  }
+
+  ::selection {
+    background-color: var(--color-sage-tint);
+    color: var(--color-brand-deep);
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-scrollbar-thumb) transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--color-scrollbar-thumb);
+    border-radius: 9999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-scrollbar-thumb-hover);
+  }
+}
+
+@layer components {
+  .badge-outbreak,
+  .badge-warning,
+  .badge-safe {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    border-radius: 0.375rem;
+    border-width: 1px;
+    border-style: solid;
+    padding: 0.125rem 0.625rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    line-height: 1.4;
+    white-space: nowrap;
+  }
+
+  .badge-outbreak {
+    background-color: color-mix(in srgb, var(--color-clay) 14%, transparent);
+    border-color: color-mix(in srgb, var(--color-clay) 35%, transparent);
+    color: var(--color-clay);
+  }
+
+  .badge-warning {
+    background-color: color-mix(in srgb, var(--color-amber) 14%, transparent);
+    border-color: color-mix(in srgb, var(--color-amber) 35%, transparent);
+    color: var(--color-amber);
+  }
+
+  .badge-safe {
+    background-color: color-mix(in srgb, var(--color-brand) 12%, transparent);
+    border-color: color-mix(in srgb, var(--color-brand) 30%, transparent);
+    color: var(--color-brand);
+  }
+
+  .fs-panel {
+    border: 1px solid var(--color-border);
+    background-color: var(--color-surface);
+    border-radius: 0.75rem;
+  }
+
+  .fs-input {
+    display: block;
+    width: 100%;
+    border-radius: 0.5rem;
+    border: 1px solid var(--color-border);
+    background-color: var(--color-background-sunken);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8125rem;
+    color: var(--color-foreground);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .fs-input:focus {
+    outline: none;
+    border-color: var(--color-brand);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand) 22%, transparent);
+  }
+
+  .fs-input:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  .fs-btn-primary {
+    display: inline-flex;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 0.5rem;
+    background-color: var(--color-brand);
+    padding: 0.625rem 1rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #fff;
+    transition: opacity 0.15s ease;
+  }
+
+  .fs-btn-primary:hover:not(:disabled) {
+    opacity: 0.92;
+  }
+
+  .fs-btn-primary:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  .fs-btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--color-border);
+    background-color: var(--color-background-sunken);
+    padding: 0.5rem 0.875rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-brand);
+    transition: background-color 0.15s ease;
+  }
+
+  .fs-btn-secondary:hover:not(:disabled) {
+    background-color: var(--color-sage-tint);
+  }
+
+  .fs-btn-secondary:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+}
+
+@layer utilities {
+  .bg-topo-grid {
+    background-image: radial-gradient(
+      circle,
+      color-mix(in srgb, var(--color-brand) 8%, transparent) 1px,
+      transparent 1px
+    );
+    background-size: 22px 22px;
+  }
+
+  .font-display {
+    font-family: var(--font-display), Georgia, serif;
+  }
+}

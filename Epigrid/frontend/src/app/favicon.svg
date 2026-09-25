@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <!-- Base Plate (Warm Linen) -->
+  <rect width="256" height="256" fill="#f8f9f6" rx="56" />
+  
+  <!-- Spatial Grid Lines (Loam/Parchment) -->
+  <path d="M 128 0 L 128 256 M 0 128 L 256 128" stroke="#e2e5df" stroke-width="12" stroke-dasharray="24 16" />
+  <path d="M 64 0 L 64 256 M 192 0 L 192 256" stroke="#e2e5df" stroke-width="4" stroke-dasharray="12 12" opacity="0.5" />
+  <path d="M 0 64 L 256 64 M 0 192 L 256 192" stroke="#e2e5df" stroke-width="4" stroke-dasharray="12 12" opacity="0.5" />
+
+  <!-- Geometric Leaf (Deep Juniper) -->
+  <path d="M 64 192 C 64 121.3 121.3 64 192 64 C 192 134.7 134.7 192 64 192 Z" fill="#1b4332" />
+
+  <!-- Outbreak / Predictive Node (Terracotta) -->
+  <circle cx="160" cy="96" r="20" fill="#b85d38" />
+  
+  <!-- Trajectory Ring (Amber) -->
+  <circle cx="160" cy="96" r="36" fill="none" stroke="#c99a3e" stroke-width="6" stroke-dasharray="8 8" />
+</svg>
