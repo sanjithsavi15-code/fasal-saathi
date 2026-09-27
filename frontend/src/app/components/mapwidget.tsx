@@ -2,7 +2,7 @@
 
 // Requires: leaflet + react-leaflet
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import dynamic from "next/dynamic";
 import type {
   MapContainerProps,
@@ -21,6 +21,9 @@ import "leaflet/dist/leaflet.css";
 import { useIncident } from "@/app/context/IncidentContext";
 import type { Incident } from "@/app/context/IncidentContext";
 import { useLocale } from "@/app/context/LocaleContext";
+import { useFarmerProfile } from "@/app/context/FarmerProfileContext";
+import { useActivity } from "@/app/context/ActivityContext";
+import type { SpreadProjection } from "@/app/lib/spread-projection";
 
 const MapContainer = dynamic<MapContainerProps>(
   () => import("react-leaflet").then((mod) => mod.MapContainer),
@@ -96,13 +99,15 @@ export interface MapWidgetProps {
   zoom?: number;
   outbreakPoints?: OutbreakPoint[];
   dispersionZones?: DispersionZone[];
+  /** Weather-driven spread projection overlay */
+  spreadProjection?: SpreadProjection | null;
   className?: string;
   showLegend?: boolean;
   /** When true, omit default placeholder zones so empty maps stay clean. */
   emptyWhenNoData?: boolean;
 }
 
-const DEFAULT_CENTER: LatLngTuple = [19.9975, 73.7898];
+const DEFAULT_CENTER: LatLngTuple = [19.35, 74.65];
 const DEFAULT_ZOOM = 10;
 
 function incidentsToOutbreakPoints(incidents: Incident[]): OutbreakPoint[] {
@@ -137,6 +142,7 @@ export function MapWidget({
   zoom = DEFAULT_ZOOM,
   outbreakPoints: outbreakPointsProp,
   dispersionZones: dispersionZonesProp,
+  spreadProjection,
   className,
   showLegend = true,
   emptyWhenNoData = false,
@@ -144,6 +150,9 @@ export function MapWidget({
   const [isClientReady, setIsClientReady] = useState(false);
   const { incidents, latestIncident } = useIncident();
   const { t } = useLocale();
+  const { profile } = useFarmerProfile();
+  const { logActivity } = useActivity();
+  const lastLoggedCenterRef = useRef<string>("");
 
   const outbreakPoints = useMemo(() => {
     if (outbreakPointsProp) return outbreakPointsProp;
@@ -167,6 +176,20 @@ export function MapWidget({
     if (outbreakPoints[0]) return outbreakPoints[0].position;
     return DEFAULT_CENTER;
   }, [center, latestIncident, outbreakPoints]);
+
+  // Log map viewport changes (debounced by center comparison)
+  useEffect(() => {
+    const key = `${mapCenter[0].toFixed(4)},${mapCenter[1].toFixed(4)}`;
+    if (key !== lastLoggedCenterRef.current) {
+      lastLoggedCenterRef.current = key;
+      logActivity("map_viewport_changed", `Center: ${key}, Zoom: ${zoom}`, {
+        lat: mapCenter[0].toFixed(4),
+        lng: mapCenter[1].toFixed(4),
+        zoom: String(zoom),
+        district: profile.district,
+      });
+    }
+  }, [mapCenter, zoom, logActivity, profile.district]);
 
   useEffect(() => {
     let cancelled = false;
@@ -267,9 +290,35 @@ export function MapWidget({
               }}
             >
               <Popup>
-                <span className="text-[12px]">Your farm location (default Nashik)</span>
+                <span className="text-[12px]">Rahuri sugarcane belt (Ahmednagar)</span>
               </Popup>
             </CircleMarker>
+          )}
+
+          {/* Weather-driven spread projection overlay */}
+          {spreadProjection && spreadProjection.polygon.length >= 3 && (
+            <Polygon
+              positions={spreadProjection.polygon}
+              pathOptions={{
+                color: spreadProjection.color,
+                weight: 2,
+                dashArray: "8 4",
+                fillColor: spreadProjection.color,
+                fillOpacity: spreadProjection.fillOpacity,
+              }}
+            >
+              <Popup>
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: spreadProjection.color }}>
+                    Spread Projection
+                  </span>
+                  <span className="text-[12px]">{spreadProjection.label}</span>
+                  <span className="text-[10px] text-gray-500">
+                    Radius: ~{spreadProjection.effectiveRadiusKm} km
+                  </span>
+                </div>
+              </Popup>
+            </Polygon>
           )}
 
           <ScaleControl position="bottomleft" imperial={false} />

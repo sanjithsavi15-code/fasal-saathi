@@ -2,17 +2,7 @@
 
 import { useEffect, useMemo, useState, useCallback } from "react";
 import dynamic from "next/dynamic";
-import type {
-  MapContainerProps,
-  TileLayerProps,
-  CircleMarkerProps,
-  PolygonProps,
-  PopupProps,
-  ScaleControlProps,
-  TooltipProps,
-} from "react-leaflet";
 import type { LatLngTuple } from "leaflet";
-import "leaflet/dist/leaflet.css";
 import {
   AlertTriangle,
   BarChart3,
@@ -39,7 +29,6 @@ import {
   SUGARCANE_FIELDS,
   runSimulation,
   riskColor,
-  riskFillOpacity,
   type DiseaseProfile,
   type FieldRiskAssessment,
   type SimulationResult,
@@ -50,62 +39,22 @@ import { useLocale } from "@/app/context/LocaleContext";
 import {
   fetchSmartWeather,
 } from "@/app/lib/weather";
+import {
+  computeSpreadProjection,
+  type SpreadProjection,
+} from "@/app/lib/spread-projection";
 
-/* ─── Lazy-loaded react-leaflet components (SSR-safe) ─── */
-const MapContainer = dynamic<MapContainerProps>(
-  () => import("react-leaflet").then((m) => m.MapContainer),
-  { ssr: false }
-);
-const TileLayer = dynamic<TileLayerProps>(
-  () => import("react-leaflet").then((m) => m.TileLayer),
-  { ssr: false }
-);
-const CircleMarker = dynamic<CircleMarkerProps>(
-  () => import("react-leaflet").then((m) => m.CircleMarker),
-  { ssr: false }
-);
-const Polygon = dynamic<PolygonProps>(
-  () => import("react-leaflet").then((m) => m.Polygon),
-  { ssr: false }
-);
-const Popup = dynamic<PopupProps>(
-  () => import("react-leaflet").then((m) => m.Popup),
-  { ssr: false }
-);
-const ScaleControl = dynamic<ScaleControlProps>(
-  () => import("react-leaflet").then((m) => m.ScaleControl),
-  { ssr: false }
-);
-const Tooltip = dynamic<TooltipProps>(
-  () => import("react-leaflet").then((m) => m.Tooltip),
-  { ssr: false }
-);
-const MapRecenter = dynamic(
-  async () => {
-    const { useMap } = await import("react-leaflet");
-    const { useEffect: useFx } = await import("react");
-    function RecenterInner({
-      center,
-      zoom,
-    }: {
-      center: LatLngTuple;
-      zoom: number;
-    }) {
-      const map = useMap();
-      useFx(() => {
-        map.setView(center, zoom, { animate: true });
-      }, [map, center, zoom]);
-      return null;
-    }
-    return RecenterInner;
-  },
-  { ssr: false }
-);
-
-/* ─── Constants ─── */
-const TILE_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
-const TILE_ATTR =
-  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+/* ─── Map loaded as a single dynamic chunk (SSR-safe, HMR-stable) ─── */
+const SugarcaneMap = dynamic(() => import("./map-content"), {
+  ssr: false,
+  loading: () => (
+    <div className="relative flex min-h-0 flex-1 flex-col">
+      <div className="flex h-full items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-[var(--color-brand)]" />
+      </div>
+    </div>
+  ),
+});
 
 const DISEASE_KEYS = Object.keys(SUGARCANE_DISEASES);
 const FIELD_OPTIONS = SUGARCANE_FIELDS.map((f) => ({
@@ -119,7 +68,6 @@ const FIELD_OPTIONS = SUGARCANE_FIELDS.map((f) => ({
 
 export default function SugarcaneSimulationPage() {
   const { t } = useLocale();
-  const [isClient, setIsClient] = useState(false);
 
   // Simulation parameters
   const [diseaseKey, setDiseaseKey] = useState("red_rot");
@@ -135,14 +83,30 @@ export default function SugarcaneSimulationPage() {
   const [isAnimating, setIsAnimating] = useState(false);
   const [selectedField, setSelectedField] = useState<FieldRiskAssessment | null>(null);
 
-  // Leaflet init
-  useEffect(() => {
-    import("leaflet").then((L) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      delete (L.default.Icon.Default.prototype as any)._getIconUrl;
-      setIsClient(true);
-    });
-  }, []);
+  // User-dropped marker for manual spread projection
+  const [selectedLocation, setSelectedLocation] = useState<LatLngTuple | null>(null);
+
+  // Recompute instantly whenever location, wind, or disease changes
+  const manualSpreadProjection = useMemo<SpreadProjection | null>(() => {
+    if (!selectedLocation) return null;
+    return computeSpreadProjection(
+      selectedLocation,
+      {
+        temperatureC: weather.temperatureC,
+        humidityPct: weather.humidityPct,
+        windSpeedKmh: weather.windSpeedKmh,
+        windDirectionDeg: weather.windDirectionDeg,
+      },
+      diseaseKey,
+    );
+  }, [
+    selectedLocation,
+    weather.temperatureC,
+    weather.humidityPct,
+    weather.windSpeedKmh,
+    weather.windDirectionDeg,
+    diseaseKey,
+  ]);
 
   // Run simulation
   const handleRun = useCallback(() => {
@@ -159,13 +123,11 @@ export default function SugarcaneSimulationPage() {
     });
   }, [diseaseKey, epicenterFieldId, weather, simDays]);
 
-  // Auto-run on mount
+  // Auto-run on mount (simulation doesn't need Leaflet, so no isClient guard needed)
   useEffect(() => {
-    if (isClient && !result) {
-      handleRun();
-    }
+    handleRun();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isClient]);
+  }, []);
 
   // Animation timer
   useEffect(() => {
@@ -517,224 +479,15 @@ export default function SugarcaneSimulationPage() {
 
         {/* ─── Main Map Area ─── */}
         <div className="relative flex min-h-0 flex-1 flex-col">
-          <div className="relative flex-1">
-            {isClient ? (
-              <MapContainer
-                center={AHMEDNAGAR_CENTER}
-                zoom={13}
-                scrollWheelZoom
-                className="h-full w-full"
-              >
-                <TileLayer url={TILE_URL} attribution={TILE_ATTR} />
-                <MapRecenter center={AHMEDNAGAR_CENTER} zoom={13} />
-
-                {/* Field boundaries */}
-                {SUGARCANE_FIELDS.map((field) => {
-                  const assessment = result?.fieldAssessments.find(
-                    (a) => a.fieldId === field.id
-                  );
-                  const level = assessment?.riskLevel ?? "low";
-                  const isEpicenter = field.id === epicenterFieldId;
-
-                  return (
-                    <Polygon
-                      key={field.id}
-                      positions={field.boundary}
-                      pathOptions={{
-                        color: isEpicenter
-                          ? "#dc2626"
-                          : riskColor(level),
-                        weight: isEpicenter ? 3 : 2,
-                        dashArray: isEpicenter ? undefined : "5 3",
-                        fillColor: riskColor(level),
-                        fillOpacity: isEpicenter
-                          ? 0.4
-                          : riskFillOpacity(level),
-                      }}
-                    >
-                      <Tooltip
-                        direction="top"
-                        offset={[0, -5]}
-                        opacity={0.95}
-                        permanent={false}
-                      >
-                        <div className="text-[11px]">
-                          <strong>{field.name}</strong>
-                          <br />
-                          {field.variety} · {field.areaAcres}ac
-                          {assessment && (
-                            <>
-                              <br />
-                              <span
-                                style={{ color: riskColor(assessment.riskLevel) }}
-                              >
-                                ■
-                              </span>{" "}
-                              {assessment.riskLevel.toUpperCase()} (
-                              {assessment.riskScore})
-                            </>
-                          )}
-                        </div>
-                      </Tooltip>
-                      <Popup>
-                        <div className="flex flex-col gap-1.5 text-[11px]">
-                          <strong className="text-[13px]">
-                            {field.name}
-                          </strong>
-                          <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
-                            <span className="text-gray-500">Taluka</span>
-                            <span>{field.taluka}</span>
-                            <span className="text-gray-500">Variety</span>
-                            <span>{field.variety}</span>
-                            <span className="text-gray-500">Area</span>
-                            <span>{field.areaAcres} acres</span>
-                            <span className="text-gray-500">Soil</span>
-                            <span>{field.soilType}</span>
-                            <span className="text-gray-500">Irrigation</span>
-                            <span>{field.irrigationType}</span>
-                            <span className="text-gray-500">Age</span>
-                            <span>{field.ageMonths} months</span>
-                          </div>
-                          {assessment && (
-                            <div
-                              className="mt-1 rounded px-2 py-1 text-[10px] font-semibold"
-                              style={{
-                                color: riskColor(assessment.riskLevel),
-                                background: `color-mix(in srgb, ${riskColor(assessment.riskLevel)} 12%, transparent)`,
-                              }}
-                            >
-                              Risk: {assessment.riskLevel.toUpperCase()} · Score{" "}
-                              {assessment.riskScore} · P(infection){" "}
-                              {(assessment.infectionProbability * 100).toFixed(
-                                0
-                              )}
-                              %
-                            </div>
-                          )}
-                        </div>
-                      </Popup>
-                    </Polygon>
-                  );
-                })}
-
-                {/* Epicenter marker */}
-                {result && (
-                  <CircleMarker
-                    center={result.epicenter}
-                    radius={8}
-                    pathOptions={{
-                      color: "#dc2626",
-                      weight: 3,
-                      fillColor: "#fca5a5",
-                      fillOpacity: 0.9,
-                    }}
-                  >
-                    <Popup>
-                      <div className="text-[11px]">
-                        <strong className="text-red-600">
-                          ⚠ Disease Epicenter
-                        </strong>
-                        <br />
-                        {result.disease.name} ({result.disease.pathogen})
-                      </div>
-                    </Popup>
-                  </CircleMarker>
-                )}
-
-                {/* Spread contours */}
-                {visibleContours.map((contour) => {
-                  const c = riskColor(contour.riskLevel);
-                  return (
-                    <Polygon
-                      key={`contour-${contour.dayIndex}`}
-                      positions={contour.polygon}
-                      pathOptions={{
-                        color: c,
-                        weight: 1,
-                        dashArray: "4 2",
-                        fillColor: c,
-                        fillOpacity: riskFillOpacity(contour.riskLevel) * 0.6,
-                      }}
-                    >
-                      <Tooltip direction="center" permanent={false}>
-                        <span className="text-[10px] font-medium">
-                          Day {contour.dayIndex} ·{" "}
-                          {contour.radiusKm.toFixed(2)} km
-                        </span>
-                      </Tooltip>
-                    </Polygon>
-                  );
-                })}
-
-                <ScaleControl position="bottomleft" imperial={false} />
-              </MapContainer>
-            ) : (
-              <div className="flex h-full items-center justify-center">
-                <Loader2 className="h-6 w-6 animate-spin text-[var(--color-brand)]" />
-              </div>
-            )}
-
-            {/* Legend overlay */}
-            <div className="absolute bottom-3 right-3 z-[1000] flex flex-col gap-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]/95 px-3 py-2.5 shadow-lg backdrop-blur">
-              <span className="mb-0.5 text-[9px] font-semibold uppercase tracking-wider text-[var(--color-muted-foreground)]">
-                Risk Level
-              </span>
-              {(
-                [
-                  ["critical", "Critical"],
-                  ["high", "High Risk"],
-                  ["monitor", "Monitor"],
-                  ["low", "Lower Risk"],
-                ] as [RiskLevel, string][]
-              ).map(([level, label]) => (
-                <div
-                  key={level}
-                  className="flex items-center gap-2 text-[11px] font-medium text-[var(--color-foreground)]"
-                >
-                  <span
-                    className="h-2.5 w-2.5 rounded-sm"
-                    style={{ background: riskColor(level) }}
-                  />
-                  {label}
-                </div>
-              ))}
-            </div>
-
-            {/* Wind direction indicator */}
-            {result && (
-              <div className="absolute left-3 top-3 z-[1000] flex flex-col items-center gap-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]/95 px-3 py-2.5 shadow-lg backdrop-blur">
-                <span className="text-[9px] font-semibold uppercase tracking-wider text-[var(--color-muted-foreground)]">
-                  Wind
-                </span>
-                <div
-                  className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-background-sunken)]"
-                  title={`Wind from ${weather.windDirectionDeg}° at ${weather.windSpeedKmh} km/h`}
-                >
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 20 20"
-                    style={{
-                      transform: `rotate(${weather.windDirectionDeg}deg)`,
-                    }}
-                  >
-                    <path
-                      d="M10 2 L13 14 L10 11 L7 14 Z"
-                      fill="var(--color-brand)"
-                      stroke="var(--color-brand-deep)"
-                      strokeWidth="0.5"
-                    />
-                  </svg>
-                </div>
-                <span className="text-[10px] font-medium text-[var(--color-foreground)]">
-                  {weather.windSpeedKmh} km/h
-                </span>
-                <span className="text-[9px] text-[var(--color-muted-foreground)]">
-                  {weather.windDirectionDeg}°
-                </span>
-              </div>
-            )}
-          </div>
+          <SugarcaneMap
+            weather={weather}
+            result={result}
+            visibleContours={visibleContours}
+            epicenterFieldId={epicenterFieldId}
+            selectedLocation={selectedLocation}
+            onLocationSelect={setSelectedLocation}
+            manualSpreadProjection={manualSpreadProjection}
+          />
 
           {/* Selected Field Detail Panel */}
           {selectedField && (

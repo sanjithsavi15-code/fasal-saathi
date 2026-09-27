@@ -26,7 +26,10 @@ export interface ActivityLog {
     | "language_changed"
     | "theme_changed"
     | "page_visited"
-    | "incident_logged";
+    | "incident_logged"
+    | "map_viewport_changed"
+    | "tts_activated"
+    | "spread_projected";
   /** Human-readable summary (English) — translated at render time */
   summary: string;
   /** Optional metadata (crop, disease, district, etc.) */

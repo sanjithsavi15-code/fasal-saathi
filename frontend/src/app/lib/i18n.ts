@@ -79,6 +79,12 @@ const en: Dict = {
   logActionThemeChanged: "Theme changed",
   logActionPageVisited: "Page visited",
   logActionIncidentLogged: "Incident logged",
+  logActionMapViewportChanged: "Map viewport changed",
+  logActionTtsActivated: "Text-to-speech activated",
+  logActionSpreadProjected: "Spread projection computed",
+  ttsSpeak: "Read aloud",
+  ttsStop: "Stop reading",
+  chemicalInterventions: "Chemical interventions",
 
   /* ── Instructions page ── */
   instructionsTitle: "Instructions & Guides",
@@ -179,6 +185,12 @@ const hi: Dict = {
   logActionThemeChanged: "थीम बदली गई",
   logActionPageVisited: "पेज देखा गया",
   logActionIncidentLogged: "घटना दर्ज हुई",
+  logActionMapViewportChanged: "मानचित्र दृश्यक्षेत्र बदला",
+  logActionTtsActivated: "टेक्स्ट-टू-स्पीच सक्रिय",
+  logActionSpreadProjected: "प्रसार प्रक्षेपण गणना",
+  ttsSpeak: "ज़ोर से पढ़ें",
+  ttsStop: "पढ़ना बंद करें",
+  chemicalInterventions: "रासायनिक उपचार",
 
   /* ── Instructions page ── */
   instructionsTitle: "निर्देश एवं मार्गदर्शिका",
@@ -279,6 +291,12 @@ const mr: Dict = {
   logActionThemeChanged: "थीम बदलली",
   logActionPageVisited: "पेज पाहिले",
   logActionIncidentLogged: "घटना नोंदवली",
+  logActionMapViewportChanged: "नकाशा दृश्यक्षेत्र बदलले",
+  logActionTtsActivated: "टेक्स्ट-टू-स्पीच सक्रिय",
+  logActionSpreadProjected: "प्रसार प्रक्षेपण गणना",
+  ttsSpeak: "मोठ्याने वाचा",
+  ttsStop: "वाचणे थांबवा",
+  chemicalInterventions: "रासायनिक उपचार",
 
   /* ── Instructions page ── */
   instructionsTitle: "सूचना आणि मार्गदर्शक",
