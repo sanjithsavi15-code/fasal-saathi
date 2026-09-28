@@ -13,7 +13,7 @@
  * it is safe to import Leaflet and react-leaflet directly at the top level.
  */
 
-import { useEffect } from "react";
+import { useEffect, useCallback, useRef } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -22,15 +22,10 @@ import {
   Popup,
   ScaleControl,
   Tooltip,
-  Marker,
   useMap,
   useMapEvents,
 } from "react-leaflet";
 import type { LatLngTuple } from "leaflet";
-import L from "leaflet";
-import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
-import markerIcon from "leaflet/dist/images/marker-icon.png";
-import markerShadow from "leaflet/dist/images/marker-shadow.png";
 import "leaflet/dist/leaflet.css";
 import { MapPin } from "lucide-react";
 
@@ -45,15 +40,6 @@ import {
   type RiskLevel,
 } from "@/app/lib/sugarcane-simulation";
 import type { SpreadProjection } from "@/app/lib/spread-projection";
-
-/* ─── Fix Leaflet default marker icons (runs once when this module loads) ─── */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: markerIcon2x.src,
-  iconUrl: markerIcon.src,
-  shadowUrl: markerShadow.src,
-});
 
 /* ─── Constants ─── */
 const TILE_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
@@ -75,11 +61,18 @@ function MapClickHandler({
 }: {
   onLocationSelect: (pos: LatLngTuple) => void;
 }) {
-  useMapEvents({
-    click(e) {
-      onLocationSelect([e.latlng.lat, e.latlng.lng]);
-    },
-  });
+  const cbRef = useRef(onLocationSelect);
+  cbRef.current = onLocationSelect;
+
+  const handler = useCallback((e: { latlng: { lat: number; lng: number } }) => {
+    try {
+      cbRef.current([e.latlng.lat, e.latlng.lng]);
+    } catch (err) {
+      console.error("[MapClickHandler] Error:", err);
+    }
+  }, []);
+
+  useMapEvents({ click: handler });
   return null;
 }
 
@@ -236,7 +229,16 @@ export default function SugarcaneMap({
 
           {/* User-dropped marker */}
           {selectedLocation && (
-            <Marker position={selectedLocation}>
+            <CircleMarker
+              center={selectedLocation}
+              radius={10}
+              pathOptions={{
+                color: "var(--color-brand-deep, #2d5016)",
+                weight: 3,
+                fillColor: "var(--color-brand, #5a7d3a)",
+                fillOpacity: 0.85,
+              }}
+            >
               <Popup>
                 <div className="flex flex-col gap-0.5 text-[11px]">
                   <strong className="text-[var(--color-brand-deep)]">
@@ -256,7 +258,7 @@ export default function SugarcaneMap({
                   )}
                 </div>
               </Popup>
-            </Marker>
+            </CircleMarker>
           )}
 
           {/* Weather-driven spread polygon from the dropped marker */}
