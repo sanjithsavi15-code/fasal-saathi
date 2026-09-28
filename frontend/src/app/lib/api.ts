@@ -11,6 +11,16 @@ function resolveApiBaseUrl(): string {
 
 export const API_BASE_URL = resolveApiBaseUrl();
 
+/**
+ * Shared header that bypasses LocalTunnel's "Friendly Reminder" splash
+ * screen when requests are proxied through a tunnel URL.
+ * Safe to include even when hitting localhost directly — the header is
+ * simply ignored by servers that don't inspect it.
+ */
+export const TUNNEL_HEADERS: Record<string, string> = {
+  "Bypass-Tunnel-Reminder": "true",
+};
+
 /** Vision AI — POST /api/diagnosis/classify */
 export interface DiagnosisClassifyResponse {
   crop_type: string;
@@ -115,7 +125,12 @@ export async function classifyCropImage(
 
   let response: Response;
   try {
-    response = await fetch(url, { method: "POST", body: formData, signal });
+    response = await fetch(url, {
+      method: "POST",
+      headers: { ...TUNNEL_HEADERS },
+      body: formData,
+      signal,
+    });
   } catch (err) {
     if (err instanceof DOMException && err.name === "AbortError") {
       throw new ApiError("Classification timed out. Enter crop and disease manually.", 0);
@@ -156,7 +171,11 @@ export async function fetchGovtWeather(
 
   let response: Response;
   try {
-    response = await fetch(url, { method: "GET", signal });
+    response = await fetch(url, {
+      method: "GET",
+      headers: { ...TUNNEL_HEADERS },
+      signal,
+    });
   } catch (err) {
     if (err instanceof DOMException && err.name === "AbortError") {
       throw new ApiError("Weather request timed out.", 0);
@@ -189,13 +208,13 @@ export async function predictSimulation(
   body: SimulationPredictRequest,
   signal?: AbortSignal
 ): Promise<SimulationPredictResponse> {
-  const url = "http://127.0.0.1:8000/api/simulation/predict";
+  const url = `${API_BASE_URL}/api/simulation/predict`;
 
   let response: Response;
   try {
     response = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      headers: { ...TUNNEL_HEADERS, "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify({
         ...body,
         pathogen: normalizePathogen(body.pathogen),

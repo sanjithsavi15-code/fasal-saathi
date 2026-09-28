@@ -10,6 +10,7 @@ import { useActivity } from "@/app/context/ActivityContext";
 import {
   ApiError,
   API_BASE_URL,
+  TUNNEL_HEADERS,
   fetchGovtWeather,
   polygonToLatLng,
   predictSimulation,
@@ -138,9 +139,10 @@ export function DiagnosticCenter() {
       formData.append("file", file, file.name || "leaf.jpg");
 
       const response = await fetch(
-        "http://127.0.0.1:8000/api/diagnosis/classify",
+        `${API_BASE_URL}/api/diagnosis/classify`,
         {
           method: "POST",
+          headers: { ...TUNNEL_HEADERS },
           body: formData,
           signal: controller.signal,
           // Do NOT set Content-Type — browser must attach multipart boundary.
