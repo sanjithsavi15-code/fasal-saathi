@@ -44,7 +44,7 @@ Fasal Saathi utilizes a decoupled architecture. To run this project locally, you
 
 ### 1. Backend Setup (FastAPI & PyTorch)
 Navigate to the `backend` directory and install the necessary Python dependencies. Note: The Zero-Shot CLIP model weights (~600MB) will be downloaded on the first run and cached locally.
-```bash
+'''bash
 # Move into the backend directory
 cd backend
 
@@ -54,10 +54,10 @@ pip install -r requirements.txt
 # Start the FastAPI server (runs on http://localhost:8000)
 uvicorn main:app --reload
 
-### 2. Frontend Setup (Next.js)
-Open a new terminal window, navigate to the `frontend` directory, and launch the UI. Ensure you have your `.env.local` configured with your Supabase keys and LocalTunnel routing if testing live API access.
+2. Frontend Setup (Next.js)
+Open a new terminal window, navigate to the frontend directory, and launch the UI. Ensure you have your .env.local configured with your Supabase keys and LocalTunnel routing if testing live API access.
 
-```bash
+Bash
 # Move into the frontend directory
 cd frontend
 
@@ -66,10 +66,10 @@ npm install
 
 # Start the development server (runs on http://localhost:3000)
 npm run dev
-
-### 3. Simulating Live Traffic (LocalTunnel)
+3. Simulating Live Traffic (LocalTunnel)
 If you need to bypass standard localhost limitations (like Vercel UI previews trying to hit the local AI model), use LocalTunnel to securely route web traffic to your Python server:
 
-```bash
+Bash
 # In a fresh terminal, expose port 8000
 npx localtunnel --port 8000
+Copy the generated .loca.lt URL and add it to your Frontend's .env.local as NEXT_PUBLIC_API_URL to connect the pipeline!
